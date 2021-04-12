@@ -1,8 +1,9 @@
 <html>
 <head>
+    <title>Sheep Game</title>
 <script>
-var fieldwidth=20;
-var fieldheight=10;
+var fieldwidth=16;
+var fieldheight=16;
 var field;
 var sheepid=1;
 var wolfid=2;
@@ -11,8 +12,12 @@ var fenceid=4;
 var lastkey=0;
 var sheepLocation={"x": 0, "y": 0};
 var wolfLocation={};
-var wolfHunts=false;
+var wolfMoves=false;
+var grassEaten=0;
 var stepOn=0;
+var wolfSpeed;
+var sheepEaten=false;
+var gameOverTimer=0;
 function initialisefield()
 {
     field=new Array(fieldwidth);
@@ -29,8 +34,10 @@ function initialisefield()
     }
     initialstate();
     document.body.onkeydown=recordkey;
-    refreshposition();
+    refreshSheep();
+    refreshWolf();
     renderprocess();
+    setDifficulty();
 }
 function initialstate()
 {
@@ -74,10 +81,33 @@ function initialstate()
     }
     while(fencecount<5)
 }
+function setDifficulty()
+{
+    var rule=/difficulty=([a-z]+)/;
+    var url=window.location.href;
+    var result=url.match(rule);
+    console.debug(url);
+    console.debug(result);
+    if(result!=null)
+    {
+        if(result[1]=="easy")
+        {
+            wolfSpeed=700;
+        }
+        if(result[1]=="normal")
+        {
+            wolfSpeed=400;
+        }
+        if(result[1]=="hard")
+        {
+            wolfSpeed=300;
+        }
+    }
+}
 function recordkey(key)
 {
     lastkey=key;
-    wolfHunts=true;
+    wolfMoves=true;
 }
 function sheeproams(key)
 {
@@ -87,10 +117,11 @@ function sheeproams(key)
         {
             if(field[i][j]==sheepid)
             {
-                if(key.keyCode==39 && i<fieldwidth-1 && field[i+1][j]!=fenceid)//right
+                if(key.keyCode==39 && i<fieldwidth-1 && field[i+1][j]!=fenceid && field[i+1][j]!=wolfid)//right
                 {
                     if(field[i+1][j]==grassid)
                     {
+                        grassEaten=grassEaten+1;
                         growgrass();
                     }
                     field[i][j]=0;
@@ -100,10 +131,11 @@ function sheeproams(key)
                     sheepLocation.y=j;
                     return;
                 }
-                if(key.keyCode==37 && i>0 && field[i-1][j]!=fenceid)//left
+                if(key.keyCode==37 && i>0 && field[i-1][j]!=fenceid && field[i-1][j]!=wolfid)//left
                 {
                     if(field[i-1][j]==grassid)
                     {
+                        grassEaten=grassEaten+1;
                         growgrass();
                     }
                     field[i][j]=0;
@@ -113,10 +145,11 @@ function sheeproams(key)
                     sheepLocation.y=j;
                     return;
                 }
-                if(key.keyCode==40 && j<fieldheight-1 && field[i][j+1]!=fenceid)//down
+                if(key.keyCode==40 && j<fieldheight-1 && field[i][j+1]!=fenceid && field[i][j+1]!=wolfid)//down
                 {   
                     if(field[i][j+1]==grassid)
                     {
+                        grassEaten=grassEaten+1;
                         growgrass();
                     }
                     field[i][j]=0;
@@ -126,10 +159,11 @@ function sheeproams(key)
                     sheepLocation.y=j+1;
                     return;
                 }
-                if(key.keyCode==38 && j>0 && field[i][j-1]!=fenceid)//up
+                if(key.keyCode==38 && j>0 && field[i][j-1]!=fenceid && field[i][j-1]!=wolfid)//up
                 {
                     if(field[i][j-1]==grassid)
                     {
+                        grassEaten=grassEaten+1;
                         growgrass();
                     }
                     field[i][j]=0;
@@ -174,74 +208,70 @@ function wolfPlans()
             }
         }
     }
-    if(wolfLocation.x!=sheepLocation.x || wolfLocation.y!=sheepLocation.y)
+    var sheepReached=false;
+    do
     {
-        var sheepReached=false;
-        do
+        var current=shortestDistance(newList);
+        if(field[current.right][current.down]==sheepid)
         {
-            var current=shortestDistance(newList);
-            if(field[current.right][current.down]==sheepid)
-            {
-                sheepReached=true;
-            }
-            else
-            {
-                field[sheepLocation.x][sheepLocation.y]=0;
-                if(
-                    current.right+1<fieldwidth &&
-                    field[current.right+1][current.down]!=fenceid &&
-                    check(tempList, current.right+1, current.down)==false
-                )
-                {
-                    fillList(newList, current.distance+1, current.right+1, current.down, current.right, current.down);
-                    fillList(tempList, current.distance+1, current.right+1, current.down, current.right, current.down);
-                }
-                if(
-                    current.down+1<fieldheight &&
-                    field[current.right][current.down+1]!=fenceid &&
-                    check(tempList, current.right, current.down+1)==false
-                )
-                {
-                    fillList(newList, current.distance+1, current.right, current.down+1, current.right, current.down);
-                    fillList(tempList, current.distance+1, current.right, current.down+1, current.right, current.down);
-                }
-                if(
-                    current.right>0 &&
-                    field[current.right-1][current.down]!=fenceid &&
-                    check(tempList, current.right-1, current.down)==false
-                )
-                {
-                    fillList(newList, current.distance+1, current.right-1, current.down, current.right, current.down);
-                    fillList(tempList, current.distance+1, current.right-1, current.down, current.right, current.down);
-                }
-                if(
-                    current.down>0 &&
-                    field[current.right][current.down-1]!=fenceid &&
-                    check(tempList, current.right, current.down-1)==false
-                )
-                {
-                    fillList(newList, current.distance+1, current.right, current.down-1, current.right, current.down);
-                    fillList(tempList, current.distance+1, current.right, current.down-1, current.right, current.down);
-                }
-                var list=Delete(newList, current.right, current.down);
-                newList=list;
-                field[sheepLocation.x][sheepLocation.y]=sheepid;
-            }
+            sheepReached=true;
         }
-        while(sheepReached==false)
-        var nextMove=find(tempList, sheepLocation.x, sheepLocation.y);
-        do
+        else
         {
-            var previous=find(tempList, nextMove.prevX, nextMove.prevY);
-            nextMove=previous;
+            field[sheepLocation.x][sheepLocation.y]=0;
+            if(
+                current.right+1<fieldwidth &&
+                field[current.right+1][current.down]!=fenceid &&
+                check(tempList, current.right+1, current.down)==false
+            )
+            {
+                fillList(newList, current.distance+1, current.right+1, current.down, current.right, current.down);
+                fillList(tempList, current.distance+1, current.right+1, current.down, current.right, current.down);
+            }
+            if(
+                current.down+1<fieldheight &&
+                field[current.right][current.down+1]!=fenceid &&
+                check(tempList, current.right, current.down+1)==false
+            )
+            {
+                fillList(newList, current.distance+1, current.right, current.down+1, current.right, current.down);
+                fillList(tempList, current.distance+1, current.right, current.down+1, current.right, current.down);
+            }
+            if(
+                current.right>0 &&
+                field[current.right-1][current.down]!=fenceid &&
+                check(tempList, current.right-1, current.down)==false
+            )
+            {
+                fillList(newList, current.distance+1, current.right-1, current.down, current.right, current.down);
+                fillList(tempList, current.distance+1, current.right-1, current.down, current.right, current.down);
+            }
+            if(
+                current.down>0 &&
+                field[current.right][current.down-1]!=fenceid &&
+                check(tempList, current.right, current.down-1)==false
+            )
+            {
+                fillList(newList, current.distance+1, current.right, current.down-1, current.right, current.down);
+                fillList(tempList, current.distance+1, current.right, current.down-1, current.right, current.down);
+            }
+            var list=Delete(newList, current.right, current.down);
+            newList=list;
+            field[sheepLocation.x][sheepLocation.y]=sheepid;
         }
-        while(nextMove.distance>1)
-        field[wolfLocation.x][wolfLocation.y]=stepOn;
-        stepOn=field[nextMove.right][nextMove.down];
-        field[nextMove.right][nextMove.down]=wolfid;
-        wolfLocation.x=nextMove.right;
-        wolfLocation.y=nextMove.down;
     }
+    while(sheepReached==false)
+    var nextMove=find(tempList, sheepLocation.x, sheepLocation.y);
+    while(nextMove.distance>1)
+    {
+        var previous=find(tempList, nextMove.prevX, nextMove.prevY);
+        nextMove=previous;
+    }
+    field[wolfLocation.x][wolfLocation.y]=stepOn;
+    stepOn=field[nextMove.right][nextMove.down];
+    field[nextMove.right][nextMove.down]=wolfid;
+    wolfLocation.x=nextMove.right;
+    wolfLocation.y=nextMove.down;
 }
 function fillList(list, value, x, y, prevX, prevY)
 {
@@ -297,14 +327,31 @@ function Delete(list, x, y)
     }
     return newList;
 }
-function refreshposition()
+function refreshSheep()
 {
-    sheeproams(lastkey);
-    if(wolfHunts==true)
+    if(sheepEaten==false)
+    {
+        sheeproams(lastkey);
+        setTimeout(refreshSheep, 300);
+    }
+}
+function refreshWolf()
+{
+    if(wolfMoves==true)
     {
         wolfPlans();
     }
-    setTimeout(refreshposition, 500);//used to be 200
+    if(wolfLocation.x==sheepLocation.x && wolfLocation.y==sheepLocation.y)
+    {
+        sheepEaten=true;
+        wolfMoves=false;
+        gameOverTimer=gameOverTimer+1;
+    }
+    if(gameOverTimer>1200/wolfSpeed)
+    {
+        window.location.href="JS_SG-SS.html?game=over&score="+grassEaten;
+    }
+    setTimeout(refreshWolf, wolfSpeed);
 }
 function render()
 {
@@ -358,7 +405,7 @@ function render()
 function renderprocess()
 {
     render();
-    setTimeout(renderprocess, 40); 
+    setTimeout(renderprocess, 50); 
 }
 function printfield()
 {
@@ -375,7 +422,6 @@ function printfield()
 }
 </script>
 </head>
-<body>
 <body onload="initialisefield()">
     <img src="fence.jpg" id="fence0" height="40" width="40" style="position: absolute">
     <img src="fence.jpg" id="fence1" height="40" width="40" style="position: absolute">
