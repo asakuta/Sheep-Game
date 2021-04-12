@@ -1,0 +1,99 @@
+<html>
+<head>
+    <title>Let's Start</title>
+<script>
+function chooseText()
+{
+    var rule=/game=over/;
+    var url=window.location.href;
+    var result=url.match(rule);
+    if(result!=null)
+    {
+        if(result[0]=="game=over")
+        {
+            document.getElementById("Start").style.display="none";
+            var newRule=/score=([0-9]+)/;
+            var newResult=url.match(newRule);
+            if(newResult!=null)
+            {
+                var score=newResult[1];
+                var grasses=" grasses!";
+                if(score==1)
+                {
+                    grasses=" grass!";
+                }
+                document.getElementById("Score").innerText="You ate: "+score+grasses;
+            }
+        }
+    }
+    else
+    {
+        document.getElementById("playAgain").style.display="none";
+    }
+}
+</script>
+<style>
+p
+{
+  background-color: 007000;
+  color: white;
+  font-family: Arial, sans-serif;
+  font-size: 50;
+  text-align: center;
+}
+a:link, a:visited
+{
+  display: inline-block;
+  width: 500px;
+  height: auto;
+  background-color:009900;
+  color: white;
+  font-family: Arial, sans-serif;
+  font-size: 30;
+  padding: 15px;
+  margin: 8px;
+  border: 5px;
+  border-style: solid;
+  border-color: white;
+  text-decoration: none;
+}
+a:hover
+{
+  background-color:005000;
+}
+</style>
+</head>
+<body onload="chooseText()" style="background-color:007000">
+    <div id="Start">
+        <p>
+            Welcome to the game!
+        </p>
+        <p>
+            Ready to play?
+        </p>
+    </div>
+    <div id="playAgain">
+        <p id="Score">   
+        </p>
+        <p>
+            Wanna play again?
+        </p>
+    </div>
+    <div style="text-align: center">
+        <a href="JS_SG.html?difficulty=easy">
+            EASY MODE
+        </a>
+    </div>
+    <div style="text-align: center">
+        <a href="JS_SG.html?difficulty=normal">
+            NORMAL MODE
+        </br>
+        </a>
+    </div>
+    <div style="text-align: center">
+        <a href="JS_SG.html?difficulty=hard">
+            HARD MODE
+        </a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<html>
+<head>
+    <title>Sheep Game</title>
+<script>
+var fieldwidth=16;
+var fieldheight=16;
+var field;
+var sheepid=1;
+var wolfid=2;
+var grassid=3;
+var fenceid=4;
+var lastkey=0;
+var sheepLocation={"x": 0, "y": 0};
+var wolfLocation={};
+var wolfMoves=false;
+var grassEaten=0;
+var stepOn=0;
+var wolfSpeed;
+var sheepEaten=false;
+var gameOverTimer=0;
+function initialisefield()
+{
+    field=new Array(fieldwidth);
+    for(var i=0; i<fieldwidth; i=i+1)
+    {
+        field[i]=new Array(fieldheight);
+    }
+    for(var i=0; i<fieldwidth; i=i+1)
+    {
+        for(var j=0; j<fieldheight; j=j+1)
+        {
+            field[i][j]=0;
+        }
+    }
+    initialstate();
+    document.body.onkeydown=recordkey;
+    refreshSheep();
+    refreshWolf();
+    renderprocess();
+    setDifficulty();
+}
+function initialstate()
+{
+    var grasscount=0;
+    var fencecount=0;
+    var wolfappears=false;
+    field[0][0]=sheepid;
+    do
+    {
+        var wolfx=Math.round((Math.random()*(fieldwidth-1)));
+        var wolfy=Math.round((Math.random()*(fieldheight-1)));
+        if(field[wolfx][wolfy]==0)
+        {
+            field[wolfx][wolfy]=wolfid;
+            wolfLocation.x=wolfx;
+            wolfLocation.y=wolfy;
+            wolfappears=true;
+        }
+    }
+    while(wolfappears=false)
+    do
+    {
+        var grassx=Math.round((Math.random()*(fieldwidth-1)));
+        var grassy=Math.round((Math.random()*(fieldheight-1)));
+        if(field[grassx][grassy]==0)
+        {
+            field[grassx][grassy]=grassid;
+            grasscount=grasscount+1;
+        }
+    }
+    while(grasscount<5)
+    do
+    {
+        var fencex=Math.round((Math.random()*(fieldwidth-1)));
+        var fencey=Math.round((Math.random()*(fieldheight-1)));
+        if(field[fencex][fencey]==0)
+        {
+            field[fencex][fencey]=fenceid;
+            fencecount=fencecount+1;
+        }
+    }
+    while(fencecount<5)
+}
+function setDifficulty()
+{
+    var rule=/difficulty=([a-z]+)/;
+    var url=window.location.href;
+    var result=url.match(rule);
+    console.debug(url);
+    console.debug(result);
+    if(result!=null)
+    {
+        if(result[1]=="easy")
+        {
+            wolfSpeed=700;
+        }
+        if(result[1]=="normal")
+        {
+            wolfSpeed=400;
+        }
+        if(result[1]=="hard")
+        {
+            wolfSpeed=300;
+        }
+    }
+}
+function recordkey(key)
+{
+    lastkey=key;
+    wolfMoves=true;
+}
+function sheeproams(key)
+{
+    for(var i=0; i<fieldwidth; i=i+1)
+    {
+        for(var j=0; j<fieldheight; j=j+1)
+        {
+            if(field[i][j]==sheepid)
+            {
+                if(key.keyCode==39 && i<fieldwidth-1 && field[i+1][j]!=fenceid && field[i+1][j]!=wolfid)//right
+                {
+                    if(field[i+1][j]==grassid)
+                    {
+                        grassEaten=grassEaten+1;
+                        growgrass();
+                    }
+                    field[i][j]=0;
+                    field[i+1][j]=sheepid
+                    lastkey=key;
+                    sheepLocation.x=i+1;
+                    sheepLocation.y=j;
+                    return;
+                }
+                if(key.keyCode==37 && i>0 && field[i-1][j]!=fenceid && field[i-1][j]!=wolfid)//left
+                {
+                    if(field[i-1][j]==grassid)
+                    {
+                        grassEaten=grassEaten+1;
+                        growgrass();
+                    }
+                    field[i][j]=0;
+                    field[i-1][j]=sheepid
+                    lastkey=key;
+                    sheepLocation.x=i-1;
+                    sheepLocation.y=j;
+                    return;
+                }
+                if(key.keyCode==40 && j<fieldheight-1 && field[i][j+1]!=fenceid && field[i][j+1]!=wolfid)//down
+                {   
+                    if(field[i][j+1]==grassid)
+                    {
+                        grassEaten=grassEaten+1;
+                        growgrass();
+                    }
+                    field[i][j]=0;
+                    field[i][j+1]=sheepid
+                    lastkey=key;
+                    sheepLocation.x=i;
+                    sheepLocation.y=j+1;
+                    return;
+                }
+                if(key.keyCode==38 && j>0 && field[i][j-1]!=fenceid && field[i][j-1]!=wolfid)//up
+                {
+                    if(field[i][j-1]==grassid)
+                    {
+                        grassEaten=grassEaten+1;
+                        growgrass();
+                    }
+                    field[i][j]=0;
+                    field[i][j-1]=sheepid
+                    lastkey=key;
+                    sheepLocation.x=i;
+                    sheepLocation.y=j-1;
+                    return;
+                }
+            }
+        }
+    }
+}
+function growgrass()
+{
+    var grassgrown=false;
+    do
+    {
+        var grassx=Math.round((Math.random()*(fieldwidth-1)));
+        var grassy=Math.round((Math.random()*(fieldheight-1)));
+        if(field[grassx][grassy]==0)
+        {
+            field[grassx][grassy]=grassid;
+            grassgrown=true;
+        }
+    }
+    while(grassgrown==false)
+}
+function wolfPlans()
+{
+    var tempList=[];
+    var newList=[];
+    for(var i=0; i<fieldwidth; i=i+1)
+    {
+        for(var j=0; j<fieldheight; j=j+1)
+        {
+            var id=field[i][j];
+            if(id==wolfid)
+            {
+                fillList(tempList, 0, i, j, i, j);
+                fillList(newList, 0, i, j, i, j);
+            }
+        }
+    }
+    var sheepReached=false;
+    do
+    {
+        var current=shortestDistance(newList);
+        if(field[current.right][current.down]==sheepid)
+        {
+            sheepReached=true;
+        }
+        else
+        {
+            field[sheepLocation.x][sheepLocation.y]=0;
+            if(
+                current.right+1<fieldwidth &&
+                field[current.right+1][current.down]!=fenceid &&
+                check(tempList, current.right+1, current.down)==false
+            )
+            {
+                fillList(newList, current.distance+1, current.right+1, current.down, current.right, current.down);
+                fillList(tempList, current.distance+1, current.right+1, current.down, current.right, current.down);
+            }
+            if(
+                current.down+1<fieldheight &&
+                field[current.right][current.down+1]!=fenceid &&
+                check(tempList, current.right, current.down+1)==false
+            )
+            {
+                fillList(newList, current.distance+1, current.right, current.down+1, current.right, current.down);
+                fillList(tempList, current.distance+1, current.right, current.down+1, current.right, current.down);
+            }
+            if(
+                current.right>0 &&
+                field[current.right-1][current.down]!=fenceid &&
+                check(tempList, current.right-1, current.down)==false
+            )
+            {
+                fillList(newList, current.distance+1, current.right-1, current.down, current.right, current.down);
+                fillList(tempList, current.distance+1, current.right-1, current.down, current.right, current.down);
+            }
+            if(
+                current.down>0 &&
+                field[current.right][current.down-1]!=fenceid &&
+                check(tempList, current.right, current.down-1)==false
+            )
+            {
+                fillList(newList, current.distance+1, current.right, current.down-1, current.right, current.down);
+                fillList(tempList, current.distance+1, current.right, current.down-1, current.right, current.down);
+            }
+            var list=Delete(newList, current.right, current.down);
+            newList=list;
+            field[sheepLocation.x][sheepLocation.y]=sheepid;
+        }
+    }
+    while(sheepReached==false)
+    var nextMove=find(tempList, sheepLocation.x, sheepLocation.y);
+    while(nextMove.distance>1)
+    {
+        var previous=find(tempList, nextMove.prevX, nextMove.prevY);
+        nextMove=previous;
+    }
+    field[wolfLocation.x][wolfLocation.y]=stepOn;
+    stepOn=field[nextMove.right][nextMove.down];
+    field[nextMove.right][nextMove.down]=wolfid;
+    wolfLocation.x=nextMove.right;
+    wolfLocation.y=nextMove.down;
+}
+function fillList(list, value, x, y, prevX, prevY)
+{
+    list[list.length]={"distance": value, "right": x, "down": y, "prevX": prevX, "prevY": prevY};
+}
+function shortestDistance(list)
+{
+    var shortest=list[0].distance;
+    var coordinates=list[0];
+    for(var i=0; i<list.length; i=i+1)
+    {
+        if(list[i].distance<shortest)
+        {
+            shortest=list[i].distance;
+            coordinates=list[i];
+        }
+    }
+    return coordinates;
+}
+function check(list, x, y)
+{
+    var result=false;
+    for(i=0; i<list.length; i=i+1)
+    {
+        if(list[i].right==x && list[i].down==y)
+        {
+            result=true;
+        }
+    }
+    return result;
+}
+function find(list, x, y)
+{
+    var result={};
+    for(i=0; i<list.length; i=i+1)
+    {
+        if(list[i].right==x && list[i].down==y)
+        {
+            result=list[i];
+        }
+    }
+    return result;
+}
+function Delete(list, x, y)
+{
+    var newList=[];
+    for(i=0; i<list.length; i=i+1)
+    {
+        if(list[i].right!=x || list[i].down!=y)
+        {
+            newList[newList.length]=list[i];
+        }
+    }
+    return newList;
+}
+function refreshSheep()
+{
+    if(sheepEaten==false)
+    {
+        sheeproams(lastkey);
+        setTimeout(refreshSheep, 300);
+    }
+}
+function refreshWolf()
+{
+    if(wolfMoves==true)
+    {
+        wolfPlans();
+    }
+    if(wolfLocation.x==sheepLocation.x && wolfLocation.y==sheepLocation.y)
+    {
+        sheepEaten=true;
+        wolfMoves=false;
+        gameOverTimer=gameOverTimer+1;
+    }
+    if(gameOverTimer>1200/wolfSpeed)
+    {
+        window.location.href="JS_SG-SS.html?game=over&score="+grassEaten;
+    }
+    setTimeout(refreshWolf, wolfSpeed);
+}
+function render()
+{
+    var scalewidth=window.innerWidth/fieldwidth;
+    var scaleheight=window.innerHeight/fieldheight;
+    var scalemin=Math.min(scalewidth, scaleheight);
+    var grassnum=0;
+    var fencenum=0;
+    for(var i=0; i<fieldwidth; i=i+1)
+    {
+        for(var j=0; j<fieldheight; j=j+1)
+        {
+            var id=field[i][j];
+            if(id==sheepid)
+            {
+                var sheep=document.getElementById("cutesheep");
+                sheep.style.width=scalemin;
+                sheep.style.height=scalemin;
+                sheep.style.left=i*scalewidth+"px";
+                sheep.style.top=j*scaleheight+"px";
+            }
+            if(id==wolfid)
+            {
+                var wolf=document.getElementById("scarywolf");
+                wolf.style.width=scalemin;
+                wolf.style.height=scalemin;
+                wolf.style.left=i*scalewidth+"px";
+                wolf.style.top=j*scaleheight+"px";
+            }
+            if(id==grassid)
+            {
+                var grass=document.getElementById("grass"+grassnum);
+                grass.style.width=scalemin;
+                grass.style.height=scalemin;
+                grass.style.left=i*scalewidth+"px";
+                grass.style.top=j*scaleheight+"px";
+                grassnum=grassnum+1;
+            }
+            if(id==fenceid)
+            {
+                var fence=document.getElementById("fence"+fencenum);
+                fence.style.width=scalemin;
+                fence.style.height=scalemin;
+                fence.style.left=i*scalewidth+"px";
+                fence.style.top=j*scaleheight+"px";
+                fencenum=fencenum+1;
+            }
+        }
+    }
+}
+function renderprocess()
+{
+    render();
+    setTimeout(renderprocess, 50); 
+}
+function printfield()
+{
+    for(var i=0; i<fieldheight; i=i+1)
+    {
+        var string=""
+        for(var j=0; j<fieldwidth; j=j+1)
+        {
+            var id=field[j][i];
+            string=string+" "+id;
+        }
+        console.debug(string);
+    }
+}
+</script>
+</head>
+<body onload="initialisefield()">
+    <img src="fence.jpg" id="fence0" height="40" width="40" style="position: absolute">
+    <img src="fence.jpg" id="fence1" height="40" width="40" style="position: absolute">
+    <img src="fence.jpg" id="fence2" height="40" width="40" style="position: absolute">
+    <img src="fence.jpg" id="fence3" height="40" width="40" style="position: absolute">
+    <img src="fence.jpg" id="fence4" height="40" width="40" style="position: absolute">
+    <img src="grass.jpg" id="grass0" height="40" width="40" style="position: absolute">
+    <img src="grass.jpg" id="grass1" height="40" width="40" style="position: absolute">
+    <img src="grass.jpg" id="grass2" height="40" width="40" style="position: absolute">
+    <img src="grass.jpg" id="grass3" height="40" width="40" style="position: absolute">
+    <img src="grass.jpg" id="grass4" height="40" width="40" style="position: absolute">
+    <img src="cutesheep.png" id="cutesheep" height="40" width="40" style="position: absolute">
+    <img src="scarywolf.png" id="scarywolf" height="40" width="40" style="position: absolute">
+</body>
+</html>
